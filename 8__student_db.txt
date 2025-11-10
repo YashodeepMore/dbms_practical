@@ -1,0 +1,74 @@
+-- 1. Create database
+CREATE DATABASE IF NOT EXISTS studentDB;
+USE studentDB;
+
+-- 2. Create tables
+CREATE TABLE Students (
+  student_id   INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  student_name VARCHAR(100)     NOT NULL,
+  class        VARCHAR(50)      NOT NULL,
+  address      VARCHAR(255),
+  PRIMARY KEY (student_id)
+);
+
+CREATE TABLE Grades (
+  grade_id     INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  student_id   INT UNSIGNED NOT NULL,
+  subject_name VARCHAR(100)     NOT NULL,
+  grade        VARCHAR(10),
+  PRIMARY KEY (grade_id),
+  FOREIGN KEY (student_id) REFERENCES Students(student_id)
+);
+
+CREATE TABLE Attendance (
+  attendance_id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  student_id    INT UNSIGNED NOT NULL,
+  enrolment_date DATE              NOT NULL,
+  attendance_percent DECIMAL(5,2),
+  PRIMARY KEY (attendance_id),
+  FOREIGN KEY (student_id) REFERENCES Students(student_id)
+);
+
+-- 3. Create index on student_name for faster lookups
+CREATE INDEX idx_student_name ON Students(student_name);
+
+-- 4. Insert sample data
+INSERT INTO Students (student_name, class, address) VALUES
+  ('Alice Johnson', 'TY Computer', '123 Elm Street'),
+  ('Bob Smith',     'SY E&TC',     '456 Oak Avenue'),
+  ('Cathy Lee',     'FY IT',       '789 Pine Road');
+
+INSERT INTO Grades (student_id, subject_name, grade) VALUES
+  (1, 'Data Structures', 'A'),
+  (1, 'Algorithms',      'B+'),
+  (2, 'Circuits',        'A-'),
+  (3, 'Web Development', 'B');
+
+INSERT INTO Attendance (student_id, enrolment_date, attendance_percent) VALUES
+  (1, '2025-07-10', 95.50),
+  (2, '2025-07-12', 88.00),
+  (3, '2025-07-15', 92.30);
+
+-- 5. Create Views for summary insights
+CREATE VIEW vw_student_performance AS
+SELECT s.student_id,
+       s.student_name,
+       s.class,
+       GROUP_CONCAT(CONCAT(g.subject_name, ': ', g.grade) SEPARATOR ', ') AS grades_list
+FROM Students s
+LEFT JOIN Grades g ON s.student_id = g.student_id
+GROUP BY s.student_id, s.student_name, s.class;
+
+CREATE VIEW vw_student_attendance AS
+SELECT s.student_id,
+       s.student_name,
+       a.enrolment_date,
+       a.attendance_percent
+FROM Students s
+JOIN Attendance a ON s.student_id = a.student_id;
+
+-- 6. Example queries (optional) to test
+SELECT * FROM vw_student_performance;
+SELECT * FROM vw_student_attendance WHERE attendance_percent < 90;
+
+

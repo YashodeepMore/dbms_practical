@@ -1,0 +1,73 @@
+-- create tables
+DROP TABLE IF EXISTS Stud_Marks;
+DROP TABLE IF EXISTS Result;
+
+CREATE TABLE Stud_Marks (
+  Roll        INT PRIMARY KEY,
+  Name        VARCHAR(100),
+  Total_Marks INT
+);
+
+CREATE TABLE Result (
+  Roll  INT PRIMARY KEY,
+  Name  VARCHAR(100),
+  Class VARCHAR(50)
+);
+
+-- insert sample data
+INSERT INTO Stud_Marks (Roll, Name, Total_Marks) VALUES
+(1, 'Alice', 1000),
+(2, 'Bob',   920),
+(3, 'Cathy', 830),
+(4, 'David', 700);
+
+-- create stored procedure
+DELIMITER //
+CREATE PROCEDURE proc_Grade (
+  IN p_Roll       INT,
+  IN p_Name       VARCHAR(100),
+  IN p_TotalMarks INT
+)
+BEGIN
+  DECLARE v_Class VARCHAR(50);
+
+  IF p_TotalMarks <= 1500 AND p_TotalMarks >= 990 THEN
+    SET v_Class := 'Distinction';
+  ELSEIF p_TotalMarks <= 989 AND p_TotalMarks >= 900 THEN
+    SET v_Class := 'First Class';
+  ELSEIF p_TotalMarks <= 899 AND p_TotalMarks >= 825 THEN
+    SET v_Class := 'Higher Second Class';
+  ELSE
+    SET v_Class := 'Not Categorised';
+  END IF;
+
+  INSERT INTO Result (Roll, Name, Class)
+    VALUES (p_Roll, p_Name, v_Class);
+END //
+DELIMITER ;
+
+-- use the procedure for all students
+-- here using a simple loop via prepared statement
+-- (MySQL does not support cursor loops in plain SQL script easily, so using simpler method)
+INSERT INTO Result (Roll, Name, Class)
+SELECT
+  Roll,
+  Name,
+  CASE
+    WHEN Total_Marks BETWEEN 990 AND 1500 THEN 'Distinction'
+    WHEN Total_Marks BETWEEN 900 AND 989  THEN 'First Class'
+    WHEN Total_Marks BETWEEN 825 AND 899  THEN 'Higher Second Class'
+    ELSE 'Not Categorised'
+  END
+FROM Stud_Marks;
+
+-- Or if you want explicitly call proc_Grade per row (example for one row):
+CALL proc_Grade(1, 'Alice', 1000);
+CALL proc_Grade(2, 'Bob',   920);
+CALL proc_Grade(3, 'Cathy', 830);
+CALL proc_Grade(4, 'David', 700);
+
+-- check results
+SELECT * FROM Result;
+
+

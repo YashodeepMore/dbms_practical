@@ -1,0 +1,42 @@
+// 1. Use (or create) the database
+use retailDB;
+
+// 2. Create & populate the “customer” collection with sample purchase data
+db.customer.drop();
+db.customer.insertMany([
+  { cid: 1, cname: "Alice", amount: 120.50, product_name: "Laptop" },
+  { cid: 2, cname: "Bob",   amount:  80.00, product_name: "Keyboard" },
+  { cid: 1, cname: "Alice", amount:  45.00, product_name: "Mouse" },
+  { cid: 3, cname: "Cathy", amount: 150.00, product_name: "Monitor" },
+  { cid: 2, cname: "Bob",   amount: 220.00, product_name: "Graphics Card" }
+]);
+
+// 3. Define the map function – emits (customerID → amount)
+var mapFunction = function() {
+  emit(this.cid, this.amount);
+};
+
+// 4. Define the reduce function – sums all amounts for each customerID
+var reduceFunction = function(keyCustId, valuesAmounts) {
+  return Array.sum(valuesAmounts);
+};
+
+// 5. (Optional) A finalize function to format the result if needed
+var finalizeFunction = function(keyCustId, reducedValue) {
+  return { totalSpent: reducedValue };
+};
+
+// 6. Run the MapReduce job, output to a new collection
+db.customer.mapReduce(
+  mapFunction,
+  reduceFunction,
+  {
+    out: "customer_spending_summary",
+    finalize: finalizeFunction
+  }
+);
+
+// 7. Query the result collection to view the summary
+db.customer_spending_summary.find().sort({ _id: 1 }).pretty();
+
+

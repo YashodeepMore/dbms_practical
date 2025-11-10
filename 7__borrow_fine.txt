@@ -1,0 +1,93 @@
+-- 1. Create database
+CREATE DATABASE libraryDB;
+USE libraryDB;
+
+-- 2. Create tables
+CREATE TABLE Borrower (
+  Roll_no INT NOT NULL,
+  Name VARCHAR(100) NOT NULL,
+  Date_of_Issue DATE NOT NULL,
+  Name_of_Book VARCHAR(200) NOT NULL,
+  Status CHAR(1) NOT NULL,
+  PRIMARY KEY (Roll_no, Name_of_Book)
+);
+
+CREATE TABLE Fine (
+  Roll_no INT NOT NULL,
+  Fine_Date DATE NOT NULL,
+  Amt DECIMAL(10,2) NOT NULL
+);
+
+-- 3. Insert sample data
+INSERT INTO Borrower VALUES
+(101, 'Ajay', '2025-10-01', 'Database Systems', 'I'),
+(102, 'Neha', '2025-09-10', 'Operating Systems', 'I'),
+(103, 'Rohit', '2025-10-20', 'Computer Graphics', 'I');
+
+-- 4. Create stored procedure for return and fine calculation
+DELIMITER $$
+
+CREATE PROCEDURE Return_Book(
+    IN p_Roll_no INT,
+    IN p_BookName VARCHAR(200)
+)
+BEGIN
+    DECLARE v_IssueDate DATE;
+    DECLARE v_Status CHAR(1);
+    DECLARE v_Days INT;
+    DECLARE v_FineAmt DECIMAL(10,2) DEFAULT 0;
+    DECLARE no_record CONDITION FOR SQLSTATE '02000';
+
+    -- Try to get book issue info
+    SELECT Date_of_Issue, Status INTO v_IssueDate, v_Status
+    FROM Borrower
+    WHERE Roll_no = p_Roll_no AND Name_of_Book = p_BookName;
+
+    -- Check if record found
+    IF v_IssueDate IS NULL THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'No record found!';
+    END IF;
+
+    -- Check if already returned
+    IF v_Status <> 'I' THEN
+        SIGNAL SQLSTATE '45001'
+        SET MESSAGE_TEXT = 'Book already returned!';
+    END IF;
+
+    -- Calculate days difference
+    SET v_Days = DATEDIFF(CURDATE(), v_IssueDate);
+
+    -- Fine calculation
+    IF v_Days BETWEEN 15 AND 30 THEN
+        SET v_FineAmt = v_Days * 5;
+    ELSEIF v_Days > 30 THEN
+        SET v_FineAmt = (30 * 5) + ((v_Days - 30) * 50);
+    ELSE
+        SET v_FineAmt = 0;
+    END IF;
+
+    -- Insert fine if applicable
+    IF v_FineAmt > 0 THEN
+        INSERT INTO Fine (Roll_no, Fine_Date, Amt)
+        VALUES (p_Roll_no, CURDATE(), v_FineAmt);
+    END IF;
+
+    -- Update borrower status
+    UPDATE Borrower
+    SET Status = 'R'
+    WHERE Roll_no = p_Roll_no AND Name_of_Book = p_BookName;
+
+    SELECT CONCAT('Book returned successfully. Fine = Rs ', v_FineAmt) AS Message;
+END $$
+
+DELIMITER ;
+
+-- 5. Run the procedure
+CALL Return_Book(101, 'Database Systems');
+
+-- 6. Check results
+SELECT * FROM Borrower;
+SELECT * FROM Fine;
+
+

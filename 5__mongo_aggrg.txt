@@ -1,0 +1,65 @@
+// 1. Create database (or use it)
+use libraryDB;
+
+// 2. Create & populate the books collection with sample data
+db.books.drop();
+db.books.insertMany([
+  { title: "The Time Machine",         author: "H-G Wells",     genre: "Sci-Fi",    price: 9.99,  published_date: new Date("1895-05-07") },
+  { title: "1984",                      author: "George Orwell",    genre: "Fiction",   price: 14.95, published_date: new Date("1949-06-08") },
+  { title: "Brave New World",           author: "Aldous Huxley",    genre: "Fiction",   price: 13.50, published_date: new Date("1932-08-18") },
+  { title: "The Murder of Roger Ackroyd",author: "Agatha Christie", genre: "Mystery",   price: 12.00, published_date: new Date("1926-06-01") },
+  { title: "The Martian",               author: "Andy Weir",        genre: "Sci-Fi",    price: 18.50, published_date: new Date("2011-02-11") },
+  { title: "Sapiens",                   author: "Yuval Noah Harari",genre: "Non-Fiction",price: 19.99, published_date: new Date("2011-09-04") },
+  { title: "The Name of the Rose",     author: "Umberto Eco",      genre: "Mystery",   price: 15.00, published_date: new Date("1980-09-01") }
+]);
+
+// 3. Task 1: Find the average price of all books
+db.books.aggregate([
+  { $group: { _id: null, averagePrice: { $avg: "$price" } } },
+  { $project: { _id: 0, averagePrice: 1 } }
+]);
+
+// 4. Task 2: Find the count of books in each genre
+db.books.aggregate([
+  { $group: { _id: "$genre", countBooks: { $sum: 1 } } },
+  { $project: { _id: 0, genre: "$_id", countBooks: 1 } }
+]);
+
+// 5. Task 3: For each genre, find the most expensive book
+db.books.aggregate([
+  { $sort: { genre: 1, price: -1 } },
+  { $group: {
+      _id: "$genre",
+      title: { $first: "$title" },
+      author: { $first: "$author" },
+      highestPrice: { $first: "$price" }
+    }
+  },
+  { $project: { _id: 0, genre: "$_id", title: 1, author: 1, highestPrice: 1 } }
+]);
+
+// 6. Task 4: Find the authors who have written maximum books
+db.books.aggregate([
+  { $group: { _id: "$author", bookCount: { $sum: 1 } } },
+  { $sort: { bookCount: -1 } },
+  { $limit: 1 },
+  { $project: { _id: 0, author: "$_id", bookCount: 1 } }
+]);
+
+// If you want *all* authors tied for maximum, you could do a two-step approach.
+
+// 7. Task 5: Sort the books by published_date in descending order
+db.books.aggregate([
+  { $sort: { published_date: -1 } }
+]);
+
+// 8. Task 6: Sort the books by price in ascending order
+db.books.aggregate([
+  { $sort: { price: 1 } }
+]);
+
+// 9. Task 7: Create an index on title of the book and describe the index details
+db.books.createIndex({ title: 1 });
+db.books.getIndexes();
+
+

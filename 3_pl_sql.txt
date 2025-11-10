@@ -1,0 +1,70 @@
+-- 1. Create database
+CREATE DATABASE IF NOT EXISTS student_db;
+-- 2. Select the database
+USE student_db;
+
+-- 3. Create tables
+DROP TABLE IF EXISTS N_Roll_Call;
+CREATE TABLE N_Roll_Call (
+  Roll INT PRIMARY KEY,
+  Name VARCHAR(100)
+);
+
+DROP TABLE IF EXISTS O_Roll_Call;
+CREATE TABLE O_Roll_Call (
+  Roll INT PRIMARY KEY,
+  Name VARCHAR(100)
+);
+
+-- 4. Insert sample data into N_Roll_Call (new data)
+INSERT INTO N_Roll_Call (Roll, Name) VALUES
+  (1, 'Alice'),
+  (2, 'Bob'),
+  (3, 'Cathy'),
+  (4, 'David');
+
+-- 5. Optionally insert some existing data into O_Roll_Call (old data) to test skipping
+INSERT INTO O_Roll_Call (Roll, Name) VALUES
+  (3, 'Cathy');
+
+-- 6. Create stored procedure to merge from N_Roll_Call into O_Roll_Call
+DELIMITER $$
+CREATE PROCEDURE proc_merge_roll_call()
+BEGIN
+  DECLARE v_roll INT;
+  DECLARE v_name VARCHAR(100);
+  DECLARE done BOOLEAN DEFAULT FALSE;
+
+  DECLARE cur_new CURSOR FOR
+    SELECT Roll, Name FROM N_Roll_Call;
+
+  DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = TRUE;
+
+  OPEN cur_new;
+
+  read_loop: LOOP
+    FETCH cur_new INTO v_roll, v_name;
+    IF done THEN
+      LEAVE read_loop;
+    END IF;
+
+    IF NOT EXISTS (
+      SELECT 1 FROM O_Roll_Call WHERE Roll = v_roll
+    ) THEN
+      INSERT INTO O_Roll_Call (Roll, Name)
+        VALUES (v_roll, v_name);
+    END IF;
+
+  END LOOP read_loop;
+
+  CLOSE cur_new;
+END $$
+DELIMITER ;
+
+-- 7. Call the procedure
+CALL proc_merge_roll_call();
+
+-- 8. View the results in O_Roll_Call
+SELECT * FROM O_Roll_Call;
+
+

@@ -1,0 +1,66 @@
+use universityDB;
+
+// create collections and sample data
+db.teachers.insertMany([
+  { Tname:"Praveen", dno:1, dname:"COMP", experience:8, salary:12000, date_of_joining:new Date("2019-06-15") },
+  { Tname:"Anita",   dno:2, dname:"IT",   experience:6, salary:9500,  date_of_joining:new Date("2020-01-10") },
+  { Tname:"Ramesh",  dno:1, dname:"COMP", experience:10,salary:15000, date_of_joining:new Date("2018-08-20") },
+  { Tname:"Sunita",  dno:3, dname:"E&TC",experience:5, salary:11000, date_of_joining:new Date("2021-02-01") }
+]);
+
+db.students.insertMany([
+  { Sname:"Alice", roll_no:1, class:"TY" },
+  { Sname:"Bob",   roll_no:2, class:"SY" },
+  { Sname:"Charlie",roll_no:3,class:"FY" },
+  { Sname:"xyz",   roll_no:4, class:"SY" }
+]);
+
+// 2. Find all teachers alphabetically
+db.teachers.find().sort({ Tname:1 }).pretty();
+
+// 3. All teachers of COMP department
+db.teachers.find({ dname:"COMP" }).pretty();
+
+// 4. Teachers of COMP, IT, E&TC
+db.teachers.find({ dname:{ $in:["COMP","IT","E&TC"] } }).pretty();
+
+// 5. Teachers of COMP, IT, E&TC with salary ≥10000
+db.teachers.find({
+  dname:{ $in:["COMP","IT","E&TC"] },
+  salary:{ $gte:10000 }
+}).pretty();
+
+// 6. Student info where roll_no=2 OR Sname="xyz"
+db.students.find({
+  $or:[ { roll_no:2 }, { Sname:"xyz" } ]
+}).pretty();
+
+// 7. Update experience of teacher Praveen to 10 years (with upsert)
+db.teachers.updateOne(
+  { Tname:"Praveen" },
+  { $set:{ experience:10 } },
+  { upsert:true }
+);
+
+// 8. Update department of all teachers in IT → COMP
+db.teachers.updateMany(
+  { dname:"IT" },
+  { $set:{ dname:"COMP" } }
+);
+
+// 9. Find teacher’s name and experience only
+db.teachers.find(
+  {},
+  { _id:0, Tname:1, experience:1 }
+).pretty();
+
+// 10. Delete all documents from teachers having dname "IT"
+db.teachers.deleteMany({ dname:"IT" });
+
+// 11. Show first 3 docs in teachers collection ascending order
+db.teachers.find()
+  .sort({ Tname:1 })
+  .limit(3)
+  .pretty();
+
+
